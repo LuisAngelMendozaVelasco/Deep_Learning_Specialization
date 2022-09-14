@@ -2,3 +2,4 @@
 ###########
 **/__pycache__
 /ConvolutionalNeuralNetworks/TransferLearningWithMobileNet/datasets
+ConvolutionalNeuralNetworks/ImageSegmentationWithU-Net/datasets
