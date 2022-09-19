@@ -1,5 +1,6 @@
 # Folders # 
 ###########
 **/__pycache__
-/ConvolutionalNeuralNetworks/TransferLearningWithMobileNet/datasets
+ConvolutionalNeuralNetworks/TransferLearningWithMobileNet/datasets
 ConvolutionalNeuralNetworks/ImageSegmentationWithU-Net/datasets
+SequenceModels/OperationOnWordVectors-Debiasing/data
