@@ -4,3 +4,4 @@
 ConvolutionalNeuralNetworks/TransferLearningWithMobileNet/datasets
 ConvolutionalNeuralNetworks/ImageSegmentationWithU-Net/datasets
 SequenceModels/OperationOnWordVectors-Debiasing/data
+SequenceModels/Emojify/data/glove.6B.50d.txt
