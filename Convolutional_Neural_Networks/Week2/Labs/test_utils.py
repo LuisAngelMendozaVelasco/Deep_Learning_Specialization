@@ -1,15 +1,5 @@
 from termcolor import colored
-import tensorflow as tf
-from tensorflow import keras
-from keras.layers import Input
-from keras.layers import Conv2D
-from keras.layers import MaxPooling2D
-from keras.layers import Dropout 
-from keras.layers import Conv2DTranspose
-from keras.layers import concatenate
-from keras.layers import ZeroPadding2D
-from keras.layers import Dense
-
+from keras import layers
 
 # Compare the two inputs
 def comparator(learner, instructor):
@@ -20,9 +10,10 @@ def comparator(learner, instructor):
                   "\n\n does not match the input value: \n\n", 
                   colored(f"{a}", "red"))
             raise AssertionError("Error in test") 
+        
     print(colored("All tests passed!", "green"))
 
-# extracts the description of a given model
+# Extracts the description of a given model
 def summary(model):
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
@@ -30,19 +21,26 @@ def summary(model):
     result = []
     for layer in model.layers:
         descriptors = [layer.__class__.__name__, layer.output_shape, layer.count_params()]
-        if (type(layer) == Conv2D):
+
+        if (type(layer) == layers.Conv2D):
             descriptors.append(layer.padding)
             descriptors.append(layer.activation.__name__)
             descriptors.append(layer.kernel_initializer.__class__.__name__)
-        if (type(layer) == MaxPooling2D):
+
+        if (type(layer) == layers.MaxPooling2D):
             descriptors.append(layer.pool_size)
             descriptors.append(layer.strides)
             descriptors.append(layer.padding)
-        if (type(layer) == Dropout):
+
+        if (type(layer) == layers.Dropout):
             descriptors.append(layer.rate)
-        if (type(layer) == ZeroPadding2D):
+
+        if (type(layer) == layers.ZeroPadding2D):
             descriptors.append(layer.padding)
-        if (type(layer) == Dense):
+
+        if (type(layer) == layers.Dense):
             descriptors.append(layer.activation.__name__)
+
         result.append(descriptors)
+
     return result

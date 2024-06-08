@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import h5py
 import scipy.io
-import sklearn
 import sklearn.datasets
 
 def sigmoid(x):
@@ -15,7 +13,9 @@ def sigmoid(x):
     Return:
     s -- sigmoid(x)
     """
-    s = 1/(1+np.exp(-x))
+
+    s = 1 / (1 + np.exp(-x))
+
     return s
 
 def relu(x):
@@ -28,24 +28,25 @@ def relu(x):
     Return:
     s -- relu(x)
     """
-    s = np.maximum(0,x)
+
+    s = np.maximum(0, x)
     
     return s
 
 def load_params_and_grads(seed=1):
     np.random.seed(seed)
-    W1 = np.random.randn(2,3)
-    b1 = np.random.randn(2,1)
-    W2 = np.random.randn(3,3)
-    b2 = np.random.randn(3,1)
 
-    dW1 = np.random.randn(2,3)
-    db1 = np.random.randn(2,1)
-    dW2 = np.random.randn(3,3)
-    db2 = np.random.randn(3,1)
+    W1 = np.random.randn(2, 3)
+    b1 = np.random.randn(2, 1)
+    W2 = np.random.randn(3, 3)
+    b2 = np.random.randn(3, 1)
+
+    dW1 = np.random.randn(2, 3)
+    db1 = np.random.randn(2, 1)
+    dW2 = np.random.randn(3, 3)
+    db2 = np.random.randn(3, 1)
     
     return W1, b1, W2, b2, dW1, db1, dW2, db2
-
 
 def initialize_parameters(layer_dims):
     """
@@ -66,18 +67,18 @@ def initialize_parameters(layer_dims):
     """
     
     np.random.seed(3)
+
     parameters = {}
     L = len(layer_dims) # number of layers in the network
 
     for l in range(1, L):
-        parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1])*  np.sqrt(2 / layer_dims[l-1])
+        parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l - 1]) * np.sqrt(2 / layer_dims[l - 1])
         parameters['b' + str(l)] = np.zeros((layer_dims[l], 1))
         
-        assert parameters['W' + str(l)].shape[0] == layer_dims[l], layer_dims[l-1]
+        assert parameters['W' + str(l)].shape[0] == layer_dims[l], layer_dims[l - 1]
         assert parameters['W' + str(l)].shape[0] == layer_dims[l], 1
         
     return parameters
-
 
 def compute_cost(a3, Y):
     
@@ -97,7 +98,7 @@ def compute_cost(a3, Y):
     and then divide by the m training examples
     """
     
-    logprobs = np.multiply(-np.log(a3),Y) + np.multiply(-np.log(1 - a3), 1 - Y)
+    logprobs = np.multiply(-np.log(a3), Y) + np.multiply(-np.log(1 - a3), 1 - Y)
     cost_total =  np.sum(logprobs)
     
     return cost_total
@@ -152,22 +153,23 @@ def backward_propagation(X, Y, cache):
     Returns:
     gradients -- A dictionary with the gradients with respect to each parameter, activation and pre-activation variables
     """
+
     m = X.shape[1]
     (z1, a1, W1, b1, z2, a2, W2, b2, z3, a3, W3, b3) = cache
     
     dz3 = 1./m * (a3 - Y)
     dW3 = np.dot(dz3, a2.T)
-    db3 = np.sum(dz3, axis=1, keepdims = True)
+    db3 = np.sum(dz3, axis=1, keepdims=True)
     
     da2 = np.dot(W3.T, dz3)
     dz2 = np.multiply(da2, np.int64(a2 > 0))
     dW2 = np.dot(dz2, a1.T)
-    db2 = np.sum(dz2, axis=1, keepdims = True)
+    db2 = np.sum(dz2, axis=1, keepdims=True)
     
     da1 = np.dot(W2.T, dz2)
     dz1 = np.multiply(da1, np.int64(a1 > 0))
     dW1 = np.dot(dz1, X.T)
-    db1 = np.sum(dz1, axis=1, keepdims = True)
+    db1 = np.sum(dz1, axis=1, keepdims=True)
     
     gradients = {"dz3": dz3, "dW3": dW3, "db3": db3,
                  "da2": da2, "dz2": dz2, "dW2": dW2, "db2": db2,
@@ -188,22 +190,18 @@ def predict(X, y, parameters):
     """
     
     m = X.shape[1]
-    p = np.zeros((1,m), dtype = np.int)
+    p = np.zeros((1, m), dtype=int)
     
     # Forward propagation
     a3, caches = forward_propagation(X, parameters)
     
     # convert probas to 0/1 predictions
     for i in range(0, a3.shape[1]):
-        if a3[0,i] > 0.5:
-            p[0,i] = 1
+        if a3[0, i] > 0.5:
+            p[0, i] = 1
         else:
-            p[0,i] = 0
+            p[0, i] = 0
 
-    # print results
-
-    #print ("predictions: " + str(p[0,:]))
-    #print ("true labels: " + str(y[0,:]))
     print("\nAccuracy: "  + str(np.mean((p[0,:] == y[0,:]))))
     
     return p
@@ -215,7 +213,9 @@ def load_2D_dataset():
     test_X = data['Xval'].T
     test_Y = data['yval'].T
 
-    plt.scatter(train_X[0, :], train_X[1, :], c=train_Y, s=40, cmap=plt.cm.Spectral);
+    plt.figure()
+    plt.scatter(train_X[0, :], train_X[1, :], c=train_Y, s=40, cmap=plt.cm.Spectral)
+    plt.show()
     
     return train_X, train_Y, test_X, test_Y
 
@@ -231,7 +231,6 @@ def plot_decision_boundary(model, X, y):
     Z = Z.reshape(xx.shape)
     # Plot the contour and training examples
     plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral)
-    plt.grid(which='both')
     plt.ylabel('x2')
     plt.xlabel('x1')
     plt.scatter(X[0, :], X[1, :], c=y, cmap=plt.cm.Spectral)
@@ -252,13 +251,18 @@ def predict_dec(parameters, X):
     # Predict using forward propagation and a classification threshold of 0.5
     a3, cache = forward_propagation(X, parameters)
     predictions = (a3 > 0.5)
+
     return predictions
 
 def load_dataset():
     np.random.seed(3)
-    train_X, train_Y = sklearn.datasets.make_moons(n_samples=300, noise=.2) #300 #0.2 
+
+    train_X, train_Y = sklearn.datasets.make_moons(n_samples=300, noise=0.2) #300 #0.2 
     # Visualize the data
-    plt.scatter(train_X[:, 0], train_X[:, 1], c=train_Y, s=40, cmap=plt.cm.Spectral);
+    plt.figure()
+    plt.scatter(train_X[:, 0], train_X[:, 1], c=train_Y, s=40, cmap=plt.cm.Spectral)
+    plt.show()
+
     train_X = train_X.T
     train_Y = train_Y.reshape((1, train_Y.shape[0]))
     

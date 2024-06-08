@@ -1,8 +1,7 @@
 # Folders # 
 ###########
 **/__pycache__
-ConvolutionalNeuralNetworks/TransferLearningWithMobileNet/datasets
-ConvolutionalNeuralNetworks/ImageSegmentationWithU-Net/datasets
-SequenceModels/OperationOnWordVectors-Debiasing/data
-SequenceModels/Emojify/data/glove.6B.50d.txt
-SequenceModels/TriggerWordDetection/XY_dev/X_dev.npy
+
+# Files # 
+#########
+cache*.arrow
