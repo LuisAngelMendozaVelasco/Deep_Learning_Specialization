@@ -1,14 +1,7 @@
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Reshape
-from tensorflow.keras.layers import Embedding
-from tensorflow.keras.preprocessing.sequence import skipgrams
-from tensorflow.keras.preprocessing import sequence
-
 import urllib.request
 import collections
 import os
 import zipfile
-
 import numpy as np
 import tensorflow as tf
 
@@ -22,44 +15,54 @@ valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
 def maybe_download(filename, url, expected_bytes):
     """Download a file if not present, and make sure it's the right size."""
+
     if not os.path.exists(filename):
         filename, _ = urllib.request.urlretrieve(url + filename, filename)
+
     statinfo = os.stat(filename)
+
     if statinfo.st_size == expected_bytes:
         print('Found and verified', filename)
     else:
         print(statinfo.st_size)
-        raise Exception(
-            'Failed to verify ' + filename + '. Can you get to it with a browser?')
+        raise Exception('Failed to verify ' + filename + '. Can you get to it with a browser?')
+    
     return filename
-
 
 # Read the data into a list of strings.
 def read_data(filename):
     """Extract the first file enclosed in a zip file as a list of words."""
+
     with zipfile.ZipFile(filename) as f:
         data = tf.compat.as_str(f.read(f.namelist()[0])).split()
-    return data
 
+    return data
 
 def build_dataset(words, n_words):
     """Process raw inputs into a dataset."""
+
     count = [['UNK', -1]]
     count.extend(collections.Counter(words).most_common(n_words - 1))
     dictionary = dict()
+
     for word, _ in count:
         dictionary[word] = len(dictionary)
+
     data = list()
     unk_count = 0
+
     for word in words:
         if word in dictionary:
             index = dictionary[word]
         else:
             index = 0  # dictionary['UNK']
             unk_count += 1
+
         data.append(index)
+
     count[0][1] = unk_count
     reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+
     return data, count, dictionary, reversed_dictionary
 
 def collect_data(vocabulary_size=10000):
@@ -67,9 +70,9 @@ def collect_data(vocabulary_size=10000):
     filename = maybe_download('text8.zip', url, 31344016)
     vocabulary = read_data(filename)
     print(vocabulary[:7])
-    data, count, dictionary, reverse_dictionary = build_dataset(vocabulary,
-                                                                vocabulary_size)
+    data, count, dictionary, reverse_dictionary = build_dataset(vocabulary, vocabulary_size)
     del vocabulary  # Hint to reduce memory.
+
     return data, count, dictionary, reverse_dictionary
 
 class SimilarityCallback:
@@ -80,9 +83,11 @@ class SimilarityCallback:
             sim = self._get_sim(valid_examples[i])
             nearest = (-sim).argsort()[1:top_k + 1]
             log_str = 'Nearest to %s:' % valid_word
+
             for k in range(top_k):
                 close_word = reverse_dictionary[nearest[k]]
                 log_str = '%s %s,' % (log_str, close_word)
+
             print(log_str)
 
     @staticmethod
@@ -91,13 +96,14 @@ class SimilarityCallback:
         in_arr1 = np.zeros((1,))
         in_arr2 = np.zeros((1,))
         in_arr1[0,] = valid_word_idx
+
         for i in range(vocab_size):
             in_arr2[0,] = i
             out = validation_model.predict_on_batch([in_arr1, in_arr2])
             sim[i] = out
+
         return sim
     
-
 def read_glove_vecs(glove_file):
     with open(glove_file, 'r', encoding='utf-8') as f:
         words = set()
@@ -119,10 +125,10 @@ def relu(x):
     Return:
     s -- relu(x)
     """
-    s = np.maximum(0,x)
+
+    s = np.maximum(0, x)
     
     return s
-
 
 def initialize_parameters(vocab_size, n_h):
     """
@@ -138,8 +144,8 @@ def initialize_parameters(vocab_size, n_h):
     """
     
     np.random.seed(3)
-    parameters = {}
 
+    parameters = {}
     parameters['W1'] = np.random.randn(n_h, vocab_size) / np.sqrt(vocab_size)
     parameters['b1'] = np.zeros((n_h, 1))
     parameters['W2'] = np.random.randn(vocab_size, n_h) / np.sqrt(n_h)
@@ -149,5 +155,7 @@ def initialize_parameters(vocab_size, n_h):
 
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
+
     e_x = np.exp(x - np.max(x))
+
     return e_x / e_x.sum()

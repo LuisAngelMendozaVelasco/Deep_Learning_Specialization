@@ -54,8 +54,8 @@ Apply your new knowledge of CNNs to one of the hottest (and most challenging!) f
 
 ## Programming Assignments
 
-- [Video - Car detection with YOLO](./Labs/Autonomous_driving_application_Car_detection.ipynb)
+- [Lab - Car detection with YOLO](./Labs/Autonomous_driving_application_Car_detection.ipynb)
 
 - [Reading - Clear Output Before Submitting (For U-Net Assignment)](https://www.coursera.org/learn/convolutional-neural-networks/supplement/CqMzb/clear-output-before-submitting-for-u-net-assignment)
 
-- [Video - Image Segmentation with U-Net](./Labs/Image_segmentation_Unet_v1.ipynb)
+- [Lab - Image Segmentation with U-Net](./Labs/Image_segmentation_Unet_v1.ipynb)

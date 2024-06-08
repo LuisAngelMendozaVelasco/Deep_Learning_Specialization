@@ -1,12 +1,12 @@
 from music_utils import * 
 from preprocess import * 
-from tensorflow.keras.utils import to_categorical
-
+from keras import utils
 from collections import defaultdict
 from mido import MidiFile
-from pydub import AudioSegment
-from pydub.generators import Sine
+from pydub import AudioSegment, generators
 import math
+import numpy as np
+from qa import *
 
 #chords, abstract_grammars = get_musical_data('data/original_metheny.mid')
 #corpus, tones, tones_indices, indices_tones = get_corpus_data(abstract_grammars)
@@ -20,10 +20,11 @@ def load_music_utils(file):
     chords, abstract_grammars = get_musical_data(file)
     corpus, tones, tones_indices, indices_tones = get_corpus_data(abstract_grammars)
     N_tones = len(set(corpus))
-    X, Y, N_tones = data_processing(corpus, tones_indices, 60, 30)   
+    X, Y, N_tones = data_processing(corpus, tones_indices, 60, 30) 
+
     return (X, Y, N_tones, indices_tones, chords)
 
-def generate_music(inference_model, indices_tones, chords, diversity = 0.5):
+def generate_music(inference_model, indices_tones, chords, diversity=0.5):
     """
     Generates music using a model trained to learn musical patterns of a jazz soloist. Creates an audio stream
     to save the music and play it.
@@ -41,14 +42,13 @@ def generate_music(inference_model, indices_tones, chords, diversity = 0.5):
     out_stream = stream.Stream()
     
     # Initialize chord variables
-    curr_offset = 0.0                                     # variable used to write sounds to the Stream.
-    num_chords = int(len(chords) / 3)                     # number of different set of chords
+    curr_offset = 0.0                   # variable used to write sounds to the Stream.
+    num_chords = int(len(chords) / 3)   # number of different set of chords
     
     print("Predicting new values for different set of chords.")
     # Loop over all 18 set of chords. At each iteration generate a sequence of tones
     # and use the current chords to convert it into actual sounds 
     for i in range(1, num_chords):
-        
         # Retrieve current chord from stream
         curr_chords = stream.Voice()
         
@@ -63,10 +63,11 @@ def generate_music(inference_model, indices_tones, chords, diversity = 0.5):
         pred = [indices_tones[p] for p in indices]
         
         predicted_tones = 'C,0.25 '
+
         for k in range(len(pred) - 1):
             predicted_tones += pred[k] + ' ' 
         
-        predicted_tones +=  pred[-1]
+        predicted_tones += pred[-1]
                 
         #### POST PROCESSING OF THE PREDICTED TONES ####
         # We will consider "A" and "X" as "C" tones. It is a common choice.
@@ -90,6 +91,7 @@ def generate_music(inference_model, indices_tones, chords, diversity = 0.5):
         # Insert sounds into the output stream
         for m in sounds:
             out_stream.insert(curr_offset + m.offset, m)
+
         for mc in curr_chords:
             out_stream.insert(curr_offset + mc.offset, mc)
 
@@ -100,9 +102,9 @@ def generate_music(inference_model, indices_tones, chords, diversity = 0.5):
 
     # Save audio stream to fine
     mf = midi.translate.streamToMidiFile(out_stream)
-    mf.open("output/my_music.midi", 'wb')
+    mf.open("./output/my_music.midi", 'wb')
     mf.write()
-    print("Your generated music is saved in output/my_music.midi")
+    print("Your generated music is saved in ./output/my_music.midi")
     mf.close()
     
     # Play the final stream through output (see 'play' lambda function above)
@@ -111,8 +113,8 @@ def generate_music(inference_model, indices_tones, chords, diversity = 0.5):
     
     return out_stream
 
-def predict_and_sample(inference_model, x_initializer = x_initializer, a_initializer = a_initializer, 
-                       c_initializer = c_initializer):
+def predict_and_sample(inference_model, x_initializer=x_initializer, a_initializer=a_initializer, 
+                       c_initializer=c_initializer):
     """
     Predicts the next value of values using the inference model.
     
@@ -130,8 +132,8 @@ def predict_and_sample(inference_model, x_initializer = x_initializer, a_initial
     
     ### START CODE HERE ###
     pred = inference_model.predict([x_initializer, a_initializer, c_initializer])
-    indices = np.argmax(pred, axis = -1)
-    results = to_categorical(indices, num_classes=90)
+    indices = np.argmax(pred, axis=-1)
+    results = utils.to_categorical(indices, num_classes=90)
     ### END CODE HERE ###
     
     return results, indices
@@ -140,16 +142,17 @@ def note_to_freq(note, concert_A=440.0):
   '''
   from wikipedia: http://en.wikipedia.org/wiki/MIDI_Tuning_Standard#Frequency_values
   '''
+
   return (2.0 ** ((note - 69) / 12.0)) * concert_A
 
 def ticks_to_ms(ticks, tempo, mid):
     tick_ms = math.ceil((60000.0 / tempo) / mid.ticks_per_beat)
+
     return ticks * tick_ms
 
 def mid2wav(file):
     mid = MidiFile(file)
     output = AudioSegment.silent(mid.length * 1000.0)
-
     tempo = 130 # bpm
 
     for track in mid.tracks:
@@ -159,21 +162,20 @@ def mid2wav(file):
 
         for msg in track:
             current_pos += ticks_to_ms(msg.time, tempo, mid)
+
             if msg.type == 'note_on':
                 if msg.note in current_notes[msg.channel]:
                     current_notes[msg.channel][msg.note].append((current_pos, msg))
                 else:
                     current_notes[msg.channel][msg.note] = [(current_pos, msg)]
 
-
             if msg.type == 'note_off':
                 start_pos, start_msg = current_notes[msg.channel][msg.note].pop()
-
                 duration = math.ceil(current_pos - start_pos)
-                signal_generator = Sine(note_to_freq(msg.note, 500))
+                signal_generator = generators.Sine(note_to_freq(msg.note, 500))
                 #print(duration)
                 rendered = signal_generator.to_audio_segment(duration=duration-50, volume=-20).fade_out(100).fade_in(30)
 
                 output = output.overlay(rendered, start_pos)
 
-    output.export("output/rendered.wav", format="wav")
+    output.export("./output/rendered.wav", format="wav")

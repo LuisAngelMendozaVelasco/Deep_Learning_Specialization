@@ -6,15 +6,10 @@ Code adapted from Evan Chow's jazzml, https://github.com/evancchow/jazzml with
 express permission.
 '''
 
-from __future__ import print_function
-
 from music21 import *
-from collections import defaultdict, OrderedDict
-from itertools import groupby, zip_longest
-
+from collections import OrderedDict
+from itertools import groupby
 from grammar import *
-
-from grammar import parse_melody
 from music_utils import *
 
 #----------------------------HELPER FUNCTIONS----------------------------------#
@@ -26,8 +21,10 @@ def __parse_midi(data_fn):
     # Get melody part, compress into single voice.
     melody_stream = midi_data[5]     # For Metheny piece, Melody is Part #5.
     melody1, melody2 = melody_stream.getElementsByClass(stream.Voice)
+
     for j in melody2:
         melody1.insert(j.offset, j)
+
     melody_voice = melody1
 
     for i in melody_voice:
@@ -45,14 +42,15 @@ def __parse_midi(data_fn):
     # Verified are good parts: 0, 1, 6, 7 '''
     partIndices = [0, 1, 6, 7]
     comp_stream = stream.Voice()
-    comp_stream.append([j.flat for i, j in enumerate(midi_data) 
-        if i in partIndices])
+    comp_stream.append([j.flat for i, j in enumerate(midi_data) if i in partIndices])
 
     # Full stream containing both the melody and the accompaniment. 
     # All parts are flattened. 
     full_stream = stream.Voice()
+
     for i in range(len(comp_stream)):
         full_stream.append(comp_stream[i])
+
     full_stream.append(melody_voice)
 
     # Extract solo stream, assuming you know the positions ..ByOffset(i, j).
@@ -60,14 +58,14 @@ def __parse_midi(data_fn):
     # stream.Part(), not stream.Voice().
     # Accompanied solo is in range [478, 548)
     solo_stream = stream.Voice()
+
     for part in full_stream:
         curr_part = stream.Part()
         curr_part.append(part.getElementsByClass(instrument.Instrument))
         curr_part.append(part.getElementsByClass(tempo.MetronomeMark))
         curr_part.append(part.getElementsByClass(key.KeySignature))
         curr_part.append(part.getElementsByClass(meter.TimeSignature))
-        curr_part.append(part.getElementsByOffset(476, 548, 
-                                                  includeEndBoundary=True))
+        curr_part.append(part.getElementsByOffset(476, 548, includeEndBoundary=True))
         cp = curr_part.flat
         solo_stream.insert(cp)
 
@@ -78,6 +76,7 @@ def __parse_midi(data_fn):
     measures = OrderedDict()
     offsetTuples = [(int(n.offset / 4), n) for n in melody_stream]
     measureNum = 0 # for now, don't use real m. nums (119, 120)
+
     for key_x, group in groupby(offsetTuples, lambda x: x[0]):
         measures[measureNum] = [n[1] for n in group]
         measureNum += 1
@@ -94,6 +93,7 @@ def __parse_midi(data_fn):
     # Group into 4s, just like before. 
     chords = OrderedDict()
     measureNum = 0
+
     for key_x, group in groupby(offsetTuples_chords, lambda x: x[0]):
         chords[measureNum] = [n[1] for n in group]
         measureNum += 1
@@ -114,13 +114,18 @@ def __parse_midi(data_fn):
 def __get_abstract_grammars(measures, chords):
     # extract grammars
     abstract_grammars = []
+
     for ix in range(1, len(measures)):
         m = stream.Voice()
+
         for i in measures[ix]:
             m.insert(i.offset, i)
+
         c = stream.Voice()
+
         for j in chords[ix]:
             c.insert(j.offset, j)
+
         parsed = parse_melody(m, c)
         abstract_grammars.append(parsed)
 
@@ -130,7 +135,6 @@ def __get_abstract_grammars(measures, chords):
 
 ''' Get musical data from a MIDI file '''
 def get_musical_data(data_fn):
-    
     measures, chords = __parse_midi(data_fn)
     abstract_grammars = __get_abstract_grammars(measures, chords)
 

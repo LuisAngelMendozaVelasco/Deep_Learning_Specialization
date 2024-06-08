@@ -3,9 +3,7 @@ from faker import Faker
 import random
 from tqdm import tqdm
 from babel.dates import format_date
-from tensorflow.keras.utils import to_categorical
-import tensorflow.keras.backend as K
-from tensorflow.keras.models import Model
+from keras import utils, backend, models
 import matplotlib.pyplot as plt
 
 fake = Faker()
@@ -46,14 +44,14 @@ def load_date():
         Loads some fake dates 
         :returns: tuple containing human readable string, machine readable string, and date object
     """
+
     dt = fake.date_object()
 
     try:
-        human_readable = format_date(dt, format=random.choice(FORMATS),  locale='en_US') # locale=random.choice(LOCALES))
+        human_readable = format_date(dt, format=random.choice(FORMATS), locale='en_US') # locale=random.choice(LOCALES))
         human_readable = human_readable.lower()
-        human_readable = human_readable.replace(',','')
-        machine_readable = dt.isoformat()
-        
+        human_readable = human_readable.replace(',', '')
+        machine_readable = dt.isoformat()       
     except AttributeError as e:
         return None, None, None
 
@@ -70,32 +68,27 @@ def load_dataset(m):
     dataset = []
     Tx = 30
     
-
     for i in tqdm(range(m)):
         h, m, _ = load_date()
+
         if h is not None:
             dataset.append((h, m))
             human_vocab.update(tuple(h))
             machine_vocab.update(tuple(m))
     
-    human = dict(zip(sorted(human_vocab) + ['<unk>', '<pad>'], 
-                     list(range(len(human_vocab) + 2))))
+    human = dict(zip(sorted(human_vocab) + ['<unk>', '<pad>'], list(range(len(human_vocab) + 2))))
     inv_machine = dict(enumerate(sorted(machine_vocab)))
-    machine = {v:k for k,v in inv_machine.items()}
+    machine = {v:k for k, v in inv_machine.items()}
  
     return dataset, human, machine, inv_machine
 
 def preprocess_data(dataset, human_vocab, machine_vocab, Tx, Ty):
-    
     X, Y = zip(*dataset)
-    
     X = np.array([string_to_int(i, Tx, human_vocab) for i in X])
     Y = [string_to_int(t, Ty, machine_vocab) for t in Y]
     
-    Xoh = np.array(list(map(lambda x: to_categorical(x, num_classes=len(human_vocab)), X)))
-    Yoh = np.array(list(map(lambda x: to_categorical(x, num_classes=len(machine_vocab)), Y)))
-
-
+    Xoh = np.array(list(map(lambda x: utils.to_categorical(x, num_classes=len(human_vocab)), X)))
+    Yoh = np.array(list(map(lambda x: utils.to_categorical(x, num_classes=len(machine_vocab)), Y)))
 
     return X, np.array(Y), Xoh, Yoh
 
@@ -115,7 +108,7 @@ def string_to_int(string, length, vocab):
     
     #make lower to standardize
     string = string.lower()
-    string = string.replace(',','')
+    string = string.replace(',', '')
     
     if len(string) > length:
         string = string[:length]
@@ -142,6 +135,7 @@ def int_to_string(ints, inv_vocab):
     """
     
     l = [inv_vocab[i] for i in ints]
+
     return l
 
 
@@ -151,16 +145,18 @@ def run_example(model, input_vocabulary, inv_output_vocabulary, text):
     encoded = string_to_int(text, TIME_STEPS, input_vocabulary)
     prediction = model.predict(np.array([encoded]))
     prediction = np.argmax(prediction[0], axis=-1)
+
     return int_to_string(prediction, inv_output_vocabulary)
 
 def run_examples(model, input_vocabulary, inv_output_vocabulary, examples=EXAMPLES):
     predicted = []
+
     for example in examples:
         predicted.append(''.join(run_example(model, input_vocabulary, inv_output_vocabulary, example)))
         print('input:', example)
         print('output:', predicted[-1])
-    return predicted
 
+    return predicted
 
 def softmax(x, axis=1):
     """Softmax activation function.
@@ -172,27 +168,28 @@ def softmax(x, axis=1):
     # Raises
         ValueError: In case `dim(x) == 1`.
     """
-    ndim = K.ndim(x)
+
+    ndim = backend.ndim(x)
+
     if ndim == 2:
-        return K.softmax(x)
+        return backend.softmax(x)
     elif ndim > 2:
-        e = K.exp(x - K.max(x, axis=axis, keepdims=True))
-        s = K.sum(e, axis=axis, keepdims=True)
+        e = backend.exp(x - backend.max(x, axis=axis, keepdims=True))
+        s = backend.sum(e, axis=axis, keepdims=True)
+
         return e / s
     else:
         raise ValueError('Cannot apply softmax to a tensor that is 1D')
         
-
-def plot_attention_map(modelx, input_vocabulary, inv_output_vocabulary, text, n_s = 128, num = 7):
+def plot_attention_map(modelx, input_vocabulary, inv_output_vocabulary, text, n_s=128, num=7):
     """
     Plot the attention map.
   
     """
+
     attention_map = np.zeros((10, 30))
     layer = modelx.get_layer('attention_weights')
-
     Ty, Tx = attention_map.shape
-    
     human_vocab_size = 37
     
     # Well, this is cumbersome but this version of tensorflow-keras has a bug that affects the 
@@ -209,7 +206,6 @@ def plot_attention_map(modelx, input_vocabulary, inv_output_vocabulary, text, n_
     c0 = modelx.inputs[2] 
     s = s0
     c = s0
-    
     a = modelx.layers[2](X)  
     outputs = []
 
@@ -225,15 +221,11 @@ def plot_attention_map(modelx, input_vocabulary, inv_output_vocabulary, text, n_
         s, _, c = modelx.layers[10](context, initial_state = [s, c]) 
         outputs.append(energies)
 
-    f = Model(inputs=[X, s0, c0], outputs = outputs)
-    
-
+    f = models.Model(inputs=[X, s0, c0], outputs = outputs)
     s0 = np.zeros((1, n_s))
     c0 = np.zeros((1, n_s))
     encoded = np.array(string_to_int(text, Tx, input_vocabulary)).reshape((1, 30))
-    encoded = np.array(list(map(lambda x: to_categorical(x, num_classes=len(input_vocabulary)), encoded)))
-
-    
+    encoded = np.array(list(map(lambda x: utils.to_categorical(x, num_classes=len(input_vocabulary)), encoded)))
     r = f([encoded, s0, c0])
         
     for t in range(Ty):
@@ -243,10 +235,9 @@ def plot_attention_map(modelx, input_vocabulary, inv_output_vocabulary, text, n_
     # Normalize attention map
     row_max = attention_map.max(axis=1)
     attention_map = attention_map / row_max[:, None]
-
     prediction = modelx.predict([encoded, s0, c0])
-    
     predicted_text = []
+
     for i in range(len(prediction)):
         predicted_text.append(int(np.argmax(prediction[i], axis=1)))
         

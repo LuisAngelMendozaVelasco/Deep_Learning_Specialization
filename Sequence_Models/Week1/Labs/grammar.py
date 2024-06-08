@@ -6,10 +6,8 @@ Directly taken then cleaned up from Evan Chow's jazzml,
 https://github.com/evancchow/jazzml,with permission.
 '''
 
-from collections import OrderedDict, defaultdict
-from itertools import groupby
 from music21 import *
-import copy, random, pdb
+import copy, random
 
 #from preprocess import *
 
@@ -21,8 +19,10 @@ def __is_scale_tone(chord, note):
     # Derive major or minor scales (minor if 'other') based on the quality
     # of the chord.
     scaleType = scale.DorianScale() # i.e. minor pentatonic
+
     if chord.quality == 'major':
         scaleType = scale.MajorScale()
+
     # Can change later to deriveAll() for flexibility. If so then use list
     # comprehension of form [x for a in b for x in a].
     scales = scaleType.derive(chord) # use deriveAll() later for flexibility
@@ -31,20 +31,19 @@ def __is_scale_tone(chord, note):
 
     # Get note name. Return true if in the list of note names.
     noteName = note.name
+
     return (noteName in allNoteNames)
 
 ''' Helper function to determine if a note is an approach tone. '''
 def __is_approach_tone(chord, note):
     # Method: see if note is +/- 1 a chord tone.
-
     for chordPitch in chord.pitches:
         stepUp = chordPitch.transpose(1)
         stepDown = chordPitch.transpose(-1)
-        if (note.name == stepDown.name or 
-            note.name == stepDown.getEnharmonic().name or
-            note.name == stepUp.name or
-            note.name == stepUp.getEnharmonic().name):
+
+        if (note.name == stepDown.name or note.name == stepDown.getEnharmonic().name or note.name == stepUp.name or note.name == stepUp.getEnharmonic().name):
                 return True
+        
     return False
 
 ''' Helper function to determine if a note is a chord tone. '''
@@ -54,6 +53,7 @@ def __is_chord_tone(lastChord, note):
 ''' Helper function to generate a chord tone. '''
 def __generate_chord_tone(lastChord):
     lastChordNoteNames = [p.nameWithOctave for p in lastChord.pitches]
+
     return note.Note(random.choice(lastChordNoteNames))
 
 ''' Helper function to generate a scale tone. '''
@@ -61,8 +61,10 @@ def __generate_scale_tone(lastChord):
     # Derive major or minor scales (minor if 'other') based on the quality
     # of the lastChord.
     scaleType = scale.WeightedHexatonicBlues() # minor pentatonic
+
     if lastChord.quality == 'major':
         scaleType = scale.MajorScale()
+
     # Can change later to deriveAll() for flexibility. If so then use list
     # comprehension of form [x for a in b for x in a].
     scales = scaleType.derive(lastChord) # use deriveAll() later for flexibility
@@ -74,12 +76,14 @@ def __generate_scale_tone(lastChord):
     lastChordSort = lastChord.sortAscending()
     sNoteOctave = random.choice([i.octave for i in lastChordSort.pitches])
     sNote = note.Note(("%s%s" % (sNoteName, sNoteOctave)))
+
     return sNote
 
 ''' Helper function to generate an approach tone. '''
 def __generate_approach_tone(lastChord):
     sNote = __generate_scale_tone(lastChord)
     aNote = sNote.transpose(random.choice([1, -1]))
+
     return aNote
 
 ''' Helper function to generate a random tone. '''
@@ -136,6 +140,7 @@ def parse_melody(fullMeasureNotes, fullMeasureChords):
     fullGrammar = ""
     prevNote = None # Store previous note. Need for interval.
     numNonRests = 0 # Number of non-rest elements. Need for updating prevNote.
+
     for ix, nr in enumerate(measure):
         # Get the last chord. If no last chord, then (assuming chords is of length
         # >0) shift first chord in chords to the beginning of the measure.
@@ -179,8 +184,10 @@ def parse_melody(fullMeasureNotes, fullMeasureChords):
         # THIRD, get the deltas (max range up, max range down) based on where
         # the previous note was, +- minor 3. Skip rests (don't affect deltas).
         intervalInfo = ""
+
         if isinstance(nr, note.Note):
             numNonRests += 1
+
             if numNonRests == 1:
                 prevNote = nr
             else:
@@ -208,6 +215,7 @@ def unparse_grammar(m1_grammar, m1_chords):
     m1_elements = stream.Voice()
     currOffset = 0.0 # for recalculate last chord.
     prevElement = None
+
     for ix, grammarElement in enumerate(m1_grammar.split(' ')):
         terms = grammarElement.split(',')
         currOffset += float(terms[1]) # works just fine
@@ -249,20 +257,24 @@ def unparse_grammar(m1_grammar, m1_chords):
 
             # Update the stream of generated notes
             insertNote.quarterLength = float(terms[1])
+
             if insertNote.octave < 4:
                 insertNote.octave = 4
+
             m1_elements.insert(currOffset, insertNote)
             prevElement = insertNote
 
         # Case #2: if < > for the increment. Usually for notes after the first one.
         else:
             # Get lower, upper intervals and notes.
-            interval1 = interval.Interval(terms[2].replace("<",''))
-            interval2 = interval.Interval(terms[3].replace(">",''))
+            interval1 = interval.Interval(terms[2].replace("<", ''))
+            interval2 = interval.Interval(terms[3].replace(">", ''))
+
             if interval1.cents > interval2.cents:
                 upperInterval, lowerInterval = interval1, interval2
             else:
                 upperInterval, lowerInterval = interval2, interval1
+
             lowPitch = interval.transposePitch(prevElement.pitch, lowerInterval)
             highPitch = interval.transposePitch(prevElement.pitch, upperInterval)
             numNotes = int(highPitch.ps - lowPitch.ps + 1) # for range(s, e)
@@ -274,38 +286,46 @@ def unparse_grammar(m1_grammar, m1_chords):
             
             if terms[0] == 'C':
                 relevantChordTones = []
+
                 for i in range(0, numNotes):
                     currNote = note.Note(lowPitch.transpose(i).simplifyEnharmonic())
+
                     if __is_chord_tone(lastChord, currNote):
                         relevantChordTones.append(currNote)
+
                 if len(relevantChordTones) > 1:
-                    insertNote = random.choice([i for i in relevantChordTones
-                        if i.nameWithOctave != prevElement.nameWithOctave])
+                    insertNote = random.choice([i for i in relevantChordTones if i.nameWithOctave != prevElement.nameWithOctave])
                 elif len(relevantChordTones) == 1:
                     insertNote = relevantChordTones[0]
                 else: # if no choices, set to prev element +-1 whole step
-                    insertNote = prevElement.transpose(random.choice([-2,2]))
+                    insertNote = prevElement.transpose(random.choice([-2, 2]))
+
                 if insertNote.octave < 3:
                     insertNote.octave = 3
+
                 insertNote.quarterLength = float(terms[1])
                 m1_elements.insert(currOffset, insertNote)
 
             # Case S: scale note, must be within increment.
             elif terms[0] == 'S':
                 relevantScaleTones = []
+
                 for i in range(0, numNotes):
                     currNote = note.Note(lowPitch.transpose(i).simplifyEnharmonic())
+
                     if __is_scale_tone(lastChord, currNote):
                         relevantScaleTones.append(currNote)
+
                 if len(relevantScaleTones) > 1:
-                    insertNote = random.choice([i for i in relevantScaleTones
-                        if i.nameWithOctave != prevElement.nameWithOctave])
+                    insertNote = random.choice([i for i in relevantScaleTones if i.nameWithOctave != prevElement.nameWithOctave])
                 elif len(relevantScaleTones) == 1:
                     insertNote = relevantScaleTones[0]
                 else: # if no choices, set to prev element +-1 whole step
-                    insertNote = prevElement.transpose(random.choice([-2,2]))
+                    insertNote = prevElement.transpose(random.choice([-2, 2]))
+
                 if insertNote.octave < 3:
                     insertNote.octave = 3
+
                 insertNote.quarterLength = float(terms[1])
                 m1_elements.insert(currOffset, insertNote)
 
@@ -313,19 +333,23 @@ def unparse_grammar(m1_grammar, m1_chords):
             # For now: handle both A and X cases.
             else:
                 relevantApproachTones = []
+
                 for i in range(0, numNotes):
                     currNote = note.Note(lowPitch.transpose(i).simplifyEnharmonic())
+
                     if __is_approach_tone(lastChord, currNote):
                         relevantApproachTones.append(currNote)
+
                 if len(relevantApproachTones) > 1:
-                    insertNote = random.choice([i for i in relevantApproachTones
-                        if i.nameWithOctave != prevElement.nameWithOctave])
+                    insertNote = random.choice([i for i in relevantApproachTones if i.nameWithOctave != prevElement.nameWithOctave])
                 elif len(relevantApproachTones) == 1:
                     insertNote = relevantApproachTones[0]
                 else: # if no choices, set to prev element +-1 whole step
-                    insertNote = prevElement.transpose(random.choice([-2,2]))
+                    insertNote = prevElement.transpose(random.choice([-2, 2]))
+
                 if insertNote.octave < 3:
                     insertNote.octave = 3
+                    
                 insertNote.quarterLength = float(terms[1])
                 m1_elements.insert(currOffset, insertNote)
 

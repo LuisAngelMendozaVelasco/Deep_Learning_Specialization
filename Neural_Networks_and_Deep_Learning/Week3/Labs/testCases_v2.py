@@ -10,7 +10,6 @@ def initialize_parameters_test_case():
     n_x, n_h, n_y = 2, 4, 1
     return n_x, n_h, n_y
 
-
 def forward_propagation_test_case():
     np.random.seed(1)
     X_assess = np.random.randn(2, 3)

@@ -1,22 +1,11 @@
 from termcolor import colored
-
-from tensorflow.keras.layers import Input
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import MaxPooling2D
-from tensorflow.keras.layers import Dropout 
-from tensorflow.keras.layers import Conv2DTranspose
-from tensorflow.keras.layers import concatenate
-from tensorflow.keras.layers import ZeroPadding2D
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.layers import RepeatVector
-from tensorflow.keras.layers import TimeDistributed
-from tensorflow.keras.layers import GRU
-from tensorflow.keras.layers import Conv1D
+from keras.layers import (Input, Conv2D, MaxPooling2D, Dropout, Conv2DTranspose, concatenate, 
+                   ZeroPadding2D, Dense, LSTM, RepeatVector, TimeDistributed, GRU, Conv1D)
 
 # Compare the two inputs
 def comparator(learner, instructor):
     layer = 0
+
     for a, b in zip(learner, instructor):
         if tuple(a) != tuple(b):
             print(colored("Test failed", attrs=['bold']),
@@ -25,17 +14,19 @@ def comparator(learner, instructor):
                   "\n\n does not match the input value: \n\n", 
                   colored(f"{a}", "red"))
             raise AssertionError("Error in test") 
+        
         layer += 1
+
     print(colored("All tests passed!", "green"))
 
 # extracts the description of a given model
 def summary(model):
-    model.compile(optimizer='adam',
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     result = []
+
     for layer in model.layers:
         descriptors = [layer.__class__.__name__, layer.output_shape, layer.count_params()]
+
         if (type(layer) == Conv1D):
             descriptors.append(layer.padding)
             descriptors.append(layer.activation.__name__)
@@ -76,4 +67,5 @@ def summary(model):
             descriptors.append(layer.return_sequences)    
             
         result.append(descriptors)
+        
     return result
